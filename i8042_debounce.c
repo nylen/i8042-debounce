@@ -13,6 +13,7 @@ MODULE_VERSION(KBD_DEBOUNCE_VERSION);
 
 struct i8042_key_debounce_data {
 	bool block_next_keyup;
+	bool is_down;
 	unsigned long jiffies_last_keyup;
 };
 
@@ -23,6 +24,7 @@ static bool i8042_debounce_filter(
 	struct serio *port
 ) {
 	static bool extended;
+	static unsigned char keys_currently_down;
 	struct i8042_key_debounce_data *key;
 	unsigned int msecs_since_keyup;
 
@@ -44,6 +46,8 @@ static bool i8042_debounce_filter(
 
 	if (data & 0x80) {
 		// This is a keyup event
+		key->is_down = false;
+		keys_currently_down--;
 
 		key->jiffies_last_keyup = jiffies;
 		if (key->block_next_keyup) {
@@ -65,7 +69,11 @@ static bool i8042_debounce_filter(
 		// Block it and the next keyup if not enough time elapsed
 
 		msecs_since_keyup = jiffies_to_msecs(jiffies - key->jiffies_last_keyup);
-		if (unlikely(msecs_since_keyup < 50)) {
+		if (!key->is_down) {
+			key->is_down = true;
+			keys_currently_down++;
+		}
+		if (unlikely(keys_currently_down > 1 && msecs_since_keyup < 50)) {
 			pr_info(
 				"i8042_debounce key=%02x press blocked ms=%u\n",
 				data, msecs_since_keyup
