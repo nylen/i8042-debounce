@@ -29,4 +29,4 @@ Everything else: copyright (c) 2017 James Nylen.
 
 ## License
 
-[GNU General Public License v2 (or later)](./LICENSE.md).
+[GNU General Public License v3 (or later)](./LICENSE.md).
