@@ -65,7 +65,7 @@ static bool i8042_debounce_filter(
 		// Block it and the next keyup if not enough time elapsed
 
 		msecs_since_keyup = jiffies_to_msecs(jiffies - key->jiffies_last_keyup);
-		if (unlikely(msecs_since_keyup < 45)) {
+		if (unlikely(msecs_since_keyup < 50)) {
 			pr_info(
 				"i8042_debounce key=%02x press blocked ms=%u\n",
 				data, msecs_since_keyup
