@@ -82,7 +82,7 @@ static bool i8042_debounce_filter(
 			);
 			key->block_next_keyup = true;
 			return true;
-		} else if (unlikely(msecs_since_keyup < 30)) {
+		} else if (unlikely(msecs_since_keyup < 40)) {
 			pr_info(
 				"i8042_debounce key=%02x press blocked single ms=%u\n",
 				data, msecs_since_keyup
