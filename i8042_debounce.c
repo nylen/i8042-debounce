@@ -17,6 +17,8 @@ struct i8042_key_debounce_data {
 	unsigned long jiffies_last_keyup;
 };
 
+#define NUM_KEYS 0x80
+#define SIZEOF_KEYS (sizeof(struct i8042_key_debounce_data) * NUM_KEYS)
 struct i8042_key_debounce_data *keys;
 
 static bool i8042_debounce_filter(
@@ -116,14 +118,14 @@ static int __init i8042_debounce_init(void) {
 		goto err_filter;
 	}
 
-	keys = vmalloc(sizeof(struct i8042_key_debounce_data) * 0x80);
+	keys = vmalloc(SIZEOF_KEYS);
 	if (!keys) {
 		pr_err("Unable to allocate memory\n");
 		err = -ENOMEM;
 		goto err_mem;
 	}
 
-	memset(keys, 0x00, sizeof(struct i8042_key_debounce_data) * 0x80);
+	memset(keys, 0x00, SIZEOF_KEYS);
 
 	pr_info("i8042_debounce init\n");
 	return 0;
