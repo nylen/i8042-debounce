@@ -3,6 +3,7 @@ obj-m := $(modname).o
 
 KVERSION := $(shell uname -r)
 KDIR := /lib/modules/$(KVERSION)/build
+KMISC := /lib/modules/$(KVERSION)/misc
 PWD := "$$(pwd)"
 
 ifdef DEBUG
@@ -20,12 +21,12 @@ load:
 	insmod $(modname).ko
 
 install:
-	mkdir -p /lib/modules/$(KVERSION)/misc/$(modname)
-	install -m 0755 -o root -g root $(modname).ko /lib/modules/$(KVERSION)/misc/$(modname)
+	mkdir -p $(KMISC)/$(modname)
+	install -m 0755 -o root -g root $(modname).ko $(KMISC)/$(modname)
 	depmod -a
 
 uninstall:
-	rm /lib/modules/$(KVERSION)/misc/$(modname)/$(modname).ko
-	rmdir /lib/modules/$(KVERSION)/misc/$(modname)
-	rmdir /lib/modules/$(KVERSION)/misc
+	rm $(KMISC)/$(modname)/$(modname).ko
+	rmdir $(KMISC)/$(modname)
+	rmdir $(KMISC)
 	depmod -a
