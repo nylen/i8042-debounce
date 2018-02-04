@@ -4,17 +4,16 @@ obj-m := $(modname).o
 KVERSION := $(shell uname -r)
 KDIR := /lib/modules/$(KVERSION)/build
 KMISC := /lib/modules/$(KVERSION)/misc
-PWD := "$$(pwd)"
 
 ifdef DEBUG
 CFLAGS_$(obj-m) := -DDEBUG
 endif
 
 default:
-	$(MAKE) -C $(KDIR) M=$(PWD) modules
+	$(MAKE) -C $(KDIR) M=$(CURDIR) modules
 
 clean:
-	$(MAKE) O=$(PWD) -C $(KDIR) M=$(PWD) clean
+	$(MAKE) O=$(CURDIR) -C $(KDIR) M=$(CURDIR) clean
 
 load:
 	-rmmod $(modname)
