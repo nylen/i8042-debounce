@@ -76,14 +76,14 @@ static bool i8042_debounce_filter(
 			key->is_down = true;
 			keys_currently_down++;
 		}
-		if (unlikely(keys_currently_down > 1 && msecs_since_keyup < 55)) {
+		if (unlikely(keys_currently_down > 1 && msecs_since_keyup < 90)) {
 			pr_info(
 				"i8042_debounce key=%02x press blocked multi ms=%u\n",
 				data, msecs_since_keyup
 			);
 			key->block_next_keyup = true;
 			return true;
-		} else if (unlikely(msecs_since_keyup < 40)) {
+		} else if (unlikely(msecs_since_keyup < 75)) {
 			pr_info(
 				"i8042_debounce key=%02x press blocked single ms=%u\n",
 				data, msecs_since_keyup
