@@ -1,5 +1,6 @@
 #include <linux/module.h>
 #include <linux/serio.h>
+#include <linux/vmalloc.h>
 #include <linux/i8042.h>
 
 #define KBD_DEBOUNCE_VERSION "0.1"
