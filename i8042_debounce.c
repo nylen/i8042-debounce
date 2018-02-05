@@ -4,6 +4,9 @@
 #include <linux/i8042.h>
 
 #define KBD_DEBOUNCE_VERSION "0.1"
+#define MULTI_THRESHOLD 90
+#define SINGLE_THRESHOLD 75
+#define MSG_THRESHOLD 100
 
 // vim: noet ts=4 sw=4
 
@@ -76,14 +79,14 @@ static bool i8042_debounce_filter(
 			key->is_down = true;
 			keys_currently_down++;
 		}
-		if (unlikely(keys_currently_down > 1 && msecs_since_keyup < 90)) {
+		if (unlikely(keys_currently_down > 1 && msecs_since_keyup < MULTI_THRESHOLD)) {
 			pr_info(
 				"i8042_debounce key=%02x press blocked multi ms=%u\n",
 				data, msecs_since_keyup
 			);
 			key->block_next_keyup = true;
 			return true;
-		} else if (unlikely(msecs_since_keyup < 75)) {
+		} else if (unlikely(msecs_since_keyup < SINGLE_THRESHOLD)) {
 			pr_info(
 				"i8042_debounce key=%02x press blocked single ms=%u\n",
 				data, msecs_since_keyup
@@ -93,7 +96,7 @@ static bool i8042_debounce_filter(
 		}
 
 		// Show an extra message to help with tuning the delay
-		if (unlikely(msecs_since_keyup < 100)) {
+		if (unlikely(msecs_since_keyup < MSG_THRESHOLD)) {
 			pr_info(
 				"i8042_debounce key=%02x press allowed ms=%u\n",
 				data, msecs_since_keyup
