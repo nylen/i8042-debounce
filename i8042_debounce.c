@@ -4,9 +4,18 @@
 #include <linux/i8042.h>
 
 #define KBD_DEBOUNCE_VERSION "0.1"
+
+#ifndef MULTI_THRESHOLD
 #define MULTI_THRESHOLD 90
+#endif
+
+#ifndef SINGLE_THRESHOLD
 #define SINGLE_THRESHOLD 75
+#endif
+
+#ifndef MSG_THRESHOLD
 #define MSG_THRESHOLD 100
+#endif
 
 // vim: noet ts=4 sw=4
 
