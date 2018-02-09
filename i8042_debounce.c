@@ -1,3 +1,39 @@
+/*
+ * Scancodes
+ *   High bit 0: keydown
+ *   High bit 1: keyup
+ *
+ * Q  0001 0000  (0x10)
+ * W  0001 0001  (0x11)
+ * E  0001 0010  (0x12)
+ * R  0001 0011  (0x13)
+ * T  0001 0100  (0x14)
+ * Y  0001 0101  (0x15)
+ * U  0001 0110  (0x16)
+ * I  0001 0111  (0x17)
+ * O  0001 1000  (0x18)
+ * P  0001 1001  (0x19)
+ *
+ * A  0001 1110  (0x1e)
+ * S  0001 1111  (0x1f)
+ * D  0010 0000  (0x20)
+ * F  0010 0001  (0x21)
+ * G  0010 0010  (0x22)
+ * H  0010 0011  (0x23)
+ * J  0010 0100  (0x24)
+ * K  0010 0101  (0x25)
+ * L  0010 0110  (0x26)
+ *
+ * Z  0010 1100  (0x2c)
+ * X  0010 1101  (0x2d)
+ * C  0010 1110  (0x2e)
+ * V  0010 1111  (0x2f)
+ * B  0011 0000  (0x30)
+ * N  0011 0001  (0x31)
+ * M  0011 0010  (0x32)
+ *
+ */
+
 #include <linux/module.h>
 #include <linux/serio.h>
 #include <linux/vmalloc.h>
@@ -5,24 +41,26 @@
 
 #define KBD_DEBOUNCE_VERSION "0.1"
 
-#ifndef MULTI_THRESHOLD
-#define MULTI_THRESHOLD 90
-#endif
-
-#ifndef SINGLE_THRESHOLD
-#define SINGLE_THRESHOLD 75
-#endif
-
-#ifndef MSG_THRESHOLD
-#define MSG_THRESHOLD 100
-#endif
-
-// vim: noet ts=4 sw=4
-
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Debounce the i8042 keyboard");
 MODULE_AUTHOR("James Nylen <jnylen@gmail.com>");
 MODULE_VERSION(KBD_DEBOUNCE_VERSION);
+
+#ifndef STANDARD_MSEC
+#define STANDARD_MSEC 40
+#endif
+
+#ifndef MULTIKEY_MSEC
+#define MULTIKEY_MSEC 55
+#endif
+
+#ifndef INTERKEY_MSEC
+#define INTERKEY_MSEC 5
+#endif
+
+#ifndef MESSAGE_MSEC
+#define MESSAGE_MSEC 100
+#endif
 
 struct i8042_key_debounce_data {
 	bool block_next_keyup;
@@ -32,24 +70,35 @@ struct i8042_key_debounce_data {
 
 #define NUM_KEYS 0x80
 #define SIZEOF_KEYS (sizeof(struct i8042_key_debounce_data) * NUM_KEYS)
-struct i8042_key_debounce_data *keys;
+static struct i8042_key_debounce_data *keys;
+
+#define KEYUP_MASK 0x80 // High bit: 1 (keyup), 0 (keydown)
+#define KEYID_MASK 0x7f // Remaining 7 bits: which key
+#define EXTENDED 0xe0   // E.g. 0xe0 0x1c (Keypad Enter)
+
+static bool is_alpha_keydown(unsigned char x) {
+	return (((x >= 0x10) && (x <= 0x19)) || // top row
+			((x >= 0x1e) && (x <= 0x26)) || // middle row
+			((x >= 0x2c) && (x <= 0x32)));  // bottom row
+}
 
 static bool i8042_debounce_filter(
-	unsigned char data, unsigned char str,
-	struct serio *port
+	unsigned char data, // scancode
+	unsigned char str,  // status register
+	struct serio *serio // port
 ) {
 	static bool extended;
-	static unsigned char keys_currently_down;
-	struct i8042_key_debounce_data *key;
-	unsigned int msecs_since_keyup;
+	static unsigned char keys_currently_down; // TODO: find & fix the bug that breaks this count
+	static unsigned long jiffies_last_keydown;
 
-	if (port->id.type != SERIO_8042_XL) {
-		// Not a keyboard event (touchpad, or maybe something else?)
+	unsigned int msecs, msecs_since_keydown;
+	struct i8042_key_debounce_data *key;
+
+	if (serio->id.type != SERIO_8042_XL) { // Not a keyboard event
 		return false;
 	}
 
-	// Do not attempt to filter extended keys (0xe0 then another byte)
-	if (unlikely(data == 0xe0)) {
+	if (unlikely(data == EXTENDED)) { // Extended keys
 		extended = true;
 		return false;
 	} else if (unlikely(extended)) {
@@ -57,65 +106,49 @@ static bool i8042_debounce_filter(
 		return false;
 	}
 
-	key = keys + (data & 0x7f);
+	key = keys + (data & KEYID_MASK);
 
-	if (data & 0x80) {
-		// This is a keyup event
+	if (data & KEYUP_MASK) {
+		// keyup
 		key->is_down = false;
 		keys_currently_down--;
-
 		key->jiffies_last_keyup = jiffies;
+
 		if (key->block_next_keyup) {
 			key->block_next_keyup = false;
-			pr_info(
-				"i8042_debounce key=%02x up blocked\n",
-				data & 0x7f
-			);
 			return true;
 		}
-
-		pr_debug(
-			"i8042_debounce key=%02x up allowed\n",
-			data & 0x7f
-		);
-
 	} else {
-		// This is a keypress event
-		// Block it and the next keyup if not enough time elapsed
+		// keydown
+		msecs = jiffies_to_msecs(jiffies - key->jiffies_last_keyup);
 
-		msecs_since_keyup = jiffies_to_msecs(jiffies - key->jiffies_last_keyup);
 		if (!key->is_down) {
 			key->is_down = true;
 			keys_currently_down++;
 		}
-		if (unlikely(keys_currently_down > 1 && msecs_since_keyup < MULTI_THRESHOLD)) {
-			pr_info(
-				"i8042_debounce key=%02x press blocked multi ms=%u\n",
-				data, msecs_since_keyup
-			);
+
+		if (unlikely((msecs < STANDARD_MSEC) || ((keys_currently_down > 1) && (msecs < MULTIKEY_MSEC)))) {
+			// this key was released too recently
+			pr_info("i8042_debounce data=%02x ms=%u block (recent release)\n", data, msecs);
 			key->block_next_keyup = true;
 			return true;
-		} else if (unlikely(msecs_since_keyup < SINGLE_THRESHOLD)) {
-			pr_info(
-				"i8042_debounce key=%02x press blocked single ms=%u\n",
-				data, msecs_since_keyup
-			);
-			key->block_next_keyup = true;
-			return true;
+
+		} else if (likely(is_alpha_keydown(data) && (jiffies_last_keydown > 0))) {
+			msecs_since_keydown = jiffies_to_msecs(jiffies - jiffies_last_keydown);
+			if (unlikely(msecs_since_keydown < INTERKEY_MSEC)) {
+				// another key was pressed *very* recently
+				// nobody types that fast, so this is sympathetic bounce
+				pr_info("i8042_debounce data=%02x ms=%u block (very recent press)\n", data, msecs);
+				key->block_next_keyup = true;
+				return true;
+			}
 		}
 
-		// Show an extra message to help with tuning the delay
-		if (unlikely(msecs_since_keyup < MSG_THRESHOLD)) {
-			pr_info(
-				"i8042_debounce key=%02x press allowed ms=%u\n",
-				data, msecs_since_keyup
-			);
-		} else {
-			pr_debug(
-				"i8042_debounce key=%02x press allowed ms=%u\n",
-				data, msecs_since_keyup
-			);
+		if (unlikely(msecs < MESSAGE_MSEC)) {
+			pr_info("i8042_debounce data=%02x ms=%u allow\n", data, msecs);
 		}
+
+		jiffies_last_keydown = jiffies;
 	}
 
 	return false;
