@@ -1,39 +1,3 @@
-/*
- * Scancodes
- *   High bit 0: keydown
- *   High bit 1: keyup
- *
- * Q  0001 0000  (0x10)
- * W  0001 0001  (0x11)
- * E  0001 0010  (0x12)
- * R  0001 0011  (0x13)
- * T  0001 0100  (0x14)
- * Y  0001 0101  (0x15)
- * U  0001 0110  (0x16)
- * I  0001 0111  (0x17)
- * O  0001 1000  (0x18)
- * P  0001 1001  (0x19)
- *
- * A  0001 1110  (0x1e)
- * S  0001 1111  (0x1f)
- * D  0010 0000  (0x20)
- * F  0010 0001  (0x21)
- * G  0010 0010  (0x22)
- * H  0010 0011  (0x23)
- * J  0010 0100  (0x24)
- * K  0010 0101  (0x25)
- * L  0010 0110  (0x26)
- *
- * Z  0010 1100  (0x2c)
- * X  0010 1101  (0x2d)
- * C  0010 1110  (0x2e)
- * V  0010 1111  (0x2f)
- * B  0011 0000  (0x30)
- * N  0011 0001  (0x31)
- * M  0011 0010  (0x32)
- *
- */
-
 #include <linux/module.h>
 #include <linux/serio.h>
 #include <linux/vmalloc.h>
@@ -94,6 +58,11 @@ static bool i8042_debounce_filter(
 	if (serio->id.type != SERIO_8042_XL) { // Not a keyboard event
 		return false;
 	}
+
+	pr_debug("i8042_debounce\n");
+	pr_debug("i8042_debounce data=%02x\n", data);
+	pr_debug("i8042_debounce\n");
+	return false;
 
 	if (unlikely(data == EXTENDED)) { // Extended keys
 		extended = true;
