@@ -74,13 +74,6 @@ static bool i8042_debounce_filter(
 		return false;
 	}
 	if (unlikely(keyid > MAX_KEYID)) {
-		if (unlikely(keyid > 0x58)) { // What is this mysterious data?
-			pr_debug("i8042_debounce data=%02x UNKNOWN\n", data);
-		}
-		return false;
-	}
-	if (unlikely(keyid == 0)) { // I'm curious whether this ever happens.
-		pr_debug("i8042_debounce ZERO\n");
 		return false;
 	}
 
@@ -109,8 +102,7 @@ static bool i8042_debounce_filter(
 
 		if (unlikely((msecs < STANDARD_MSEC) || ((keys_currently_down > 1) && (msecs < MULTIKEY_MSEC)))) {
 			// this key was released too recently
-			pr_debug("i8042_debounce data=%02x ms=%u kcd=%d block (recent release)\n",
-					 data, msecs, keys_currently_down);
+			pr_debug("i8042_debounce data=%02x ms=%u block (recent release)\n", data, msecs);
 			key->block_next_keyup = true;
 			return true;
 
@@ -119,14 +111,11 @@ static bool i8042_debounce_filter(
 			if (unlikely(msecs_since_keydown < INTERKEY_MSEC)) {
 				// another key was pressed *very* recently
 				// nobody types that fast, so this is sympathetic bounce
-				pr_debug("i8042_debounce data=%02x ms=%u kcd=%d block (very recent press)\n",
-						 data, msecs, keys_currently_down);
+				pr_debug("i8042_debounce data=%02x ms=%u block (very recent press)\n", data, msecs);
 				key->block_next_keyup = true;
 				return true;
 			}
 		}
-
-		pr_debug("i8042_debounce data=%02x ms=%u kcd=%d allow\n", data, msecs, keys_currently_down);
 
 		jiffies_last_keydown = jiffies;
 	}
