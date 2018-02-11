@@ -109,6 +109,9 @@ static bool i8042_debounce_filter(
 		// keyup
 		key->is_down = false;
 		keys_currently_down--;
+		if (keys_currently_down < 0) {
+			pr_debug("i8042_debounce data=%02x kcd=%d NEGATIVE\n", data, keys_currently_down);
+		}
 		key->jiffies_last_keyup = jiffies;
 
 		if (key->block_next_keyup) {
