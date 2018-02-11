@@ -35,6 +35,7 @@ static struct i8042_key_debounce_data *keys;
 #define KEYUP_MASK 0x80 // High bit: 1 (keyup), 0 (keydown)
 #define KEYID_MASK 0x7f // Remaining 7 bits: which key
 #define EXTENDED 0xe0   // E.g. 0xe0 0x1c (Keypad Enter)
+#define MAX_KEYID 0x3a  // Highest keyid I care to debounce: CapsLock
 
 static bool is_alpha_keydown(unsigned char x) {
 	return (((x >= 0x10) && (x <= 0x19)) || // top row
@@ -48,23 +49,16 @@ static bool i8042_debounce_filter(
 	struct serio *serio // port
 ) {
 	static bool extended;
-	/* static unsigned char keys_currently_down; // TODO: find & fix the bug that breaks this count */
-	static int keys_currently_down; // I suspect the decrement is dipping below zero
+	static unsigned char keys_currently_down;
 	static unsigned long jiffies_last_keydown;
 
 	unsigned int msecs, msecs_since_keydown;
+	unsigned char keyid;
 	struct i8042_key_debounce_data *key;
 
 	if (serio->id.type != SERIO_8042_XL) { // Not a keyboard event
 		return false;
 	}
-
-	if( likely( (data != 0x1c) && (data != 0x9c) ) ) {
-		pr_debug("i8042_debounce\n");
-		pr_debug("i8042_debounce data=%02x\n", data);
-		pr_debug("i8042_debounce\n");
-	}
-	return false;
 
 	if (unlikely(data == EXTENDED)) { // Extended keys
 		extended = true;
@@ -74,7 +68,23 @@ static bool i8042_debounce_filter(
 		return false;
 	}
 
-	key = keys + (data & KEYID_MASK);
+	keyid = data & KEYID_MASK;
+
+	if (unlikely(keyid == 0x2b)) { // Either \ or part of an Ack/ID sequence
+		return false;
+	}
+	if (unlikely(keyid > MAX_KEYID)) {
+		if (unlikely(keyid > 0x58)) { // What is this mysterious data?
+			pr_debug("i8042_debounce data=%02x UNKNOWN\n", data);
+		}
+		return false;
+	}
+	if (unlikely(keyid == 0)) { // I'm curious whether this ever happens.
+		pr_debug("i8042_debounce ZERO\n");
+		return false;
+	}
+
+	key = keys + keyid;
 
 	if (data & KEYUP_MASK) {
 		// keyup
