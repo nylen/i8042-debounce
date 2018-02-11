@@ -77,9 +77,8 @@ static bool i8042_debounce_filter(
 	if (data & KEYUP_MASK) {
 		// keyup
 		key->is_down = false;
-		keys_currently_down--;
-		if (keys_currently_down < 0) {
-			pr_debug("i8042_debounce data=%02x kcd=%d NEGATIVE\n", data, keys_currently_down);
+		if (likely(keys_currently_down)) {
+			keys_currently_down--;
 		}
 		key->jiffies_last_keyup = jiffies;
 
