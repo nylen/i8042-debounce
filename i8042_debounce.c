@@ -84,7 +84,8 @@ static bool i8042_debounce_filter(
 	struct serio *serio // port
 ) {
 	static bool extended;
-	static unsigned char keys_currently_down; // TODO: find & fix the bug that breaks this count
+	/* static unsigned char keys_currently_down; // TODO: find & fix the bug that breaks this count */
+	static int keys_currently_down; // I suspect the decrement is dipping below zero
 	static unsigned long jiffies_last_keydown;
 
 	unsigned int msecs, msecs_since_keydown;
@@ -125,7 +126,7 @@ static bool i8042_debounce_filter(
 
 		if (unlikely((msecs < STANDARD_MSEC) || ((keys_currently_down > 1) && (msecs < MULTIKEY_MSEC)))) {
 			// this key was released too recently
-			pr_debug("i8042_debounce data=%02x ms=%u kcd=%u block (recent release)\n",
+			pr_debug("i8042_debounce data=%02x ms=%u kcd=%d block (recent release)\n",
 					 data, msecs, keys_currently_down);
 			key->block_next_keyup = true;
 			return true;
@@ -135,14 +136,14 @@ static bool i8042_debounce_filter(
 			if (unlikely(msecs_since_keydown < INTERKEY_MSEC)) {
 				// another key was pressed *very* recently
 				// nobody types that fast, so this is sympathetic bounce
-				pr_debug("i8042_debounce data=%02x ms=%u kcd=%u block (very recent press)\n",
+				pr_debug("i8042_debounce data=%02x ms=%u kcd=%d block (very recent press)\n",
 						 data, msecs, keys_currently_down);
 				key->block_next_keyup = true;
 				return true;
 			}
 		}
 
-		pr_debug("i8042_debounce data=%02x ms=%u kcd=%u allow\n", data, msecs, keys_currently_down);
+		pr_debug("i8042_debounce data=%02x ms=%u kcd=%d allow\n", data, msecs, keys_currently_down);
 
 		jiffies_last_keydown = jiffies;
 	}
