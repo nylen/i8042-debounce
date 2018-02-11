@@ -59,9 +59,11 @@ static bool i8042_debounce_filter(
 		return false;
 	}
 
-	pr_debug("i8042_debounce\n");
-	pr_debug("i8042_debounce data=%02x\n", data);
-	pr_debug("i8042_debounce\n");
+	if( likely( (data != 0x1c) && (data != 0x9c) ) ) {
+		pr_debug("i8042_debounce\n");
+		pr_debug("i8042_debounce data=%02x\n", data);
+		pr_debug("i8042_debounce\n");
+	}
 	return false;
 
 	if (unlikely(data == EXTENDED)) { // Extended keys
