@@ -58,10 +58,6 @@ MODULE_VERSION(KBD_DEBOUNCE_VERSION);
 #define INTERKEY_MSEC 5
 #endif
 
-#ifndef MESSAGE_MSEC
-#define MESSAGE_MSEC 100
-#endif
-
 struct i8042_key_debounce_data {
 	bool block_next_keyup;
 	bool is_down;
@@ -129,7 +125,8 @@ static bool i8042_debounce_filter(
 
 		if (unlikely((msecs < STANDARD_MSEC) || ((keys_currently_down > 1) && (msecs < MULTIKEY_MSEC)))) {
 			// this key was released too recently
-			pr_info("i8042_debounce data=%02x ms=%u block (recent release)\n", data, msecs);
+			pr_debug("i8042_debounce data=%02x ms=%u kcd=%u block (recent release)\n",
+					 data, msecs, keys_currently_down);
 			key->block_next_keyup = true;
 			return true;
 
@@ -138,15 +135,14 @@ static bool i8042_debounce_filter(
 			if (unlikely(msecs_since_keydown < INTERKEY_MSEC)) {
 				// another key was pressed *very* recently
 				// nobody types that fast, so this is sympathetic bounce
-				pr_info("i8042_debounce data=%02x ms=%u block (very recent press)\n", data, msecs);
+				pr_debug("i8042_debounce data=%02x ms=%u kcd=%u block (very recent press)\n",
+						 data, msecs, keys_currently_down);
 				key->block_next_keyup = true;
 				return true;
 			}
 		}
 
-		if (unlikely(msecs < MESSAGE_MSEC)) {
-			pr_info("i8042_debounce data=%02x ms=%u allow\n", data, msecs);
-		}
+		pr_debug("i8042_debounce data=%02x ms=%u kcd=%u allow\n", data, msecs, keys_currently_down);
 
 		jiffies_last_keydown = jiffies;
 	}
