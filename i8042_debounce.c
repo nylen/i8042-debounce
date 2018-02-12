@@ -37,10 +37,10 @@ static struct i8042_key_debounce_data *keys;
 #define EXTENDED 0xe0   // E.g. 0xe0 0x1c (Keypad Enter)
 #define MAX_KEYID 0x3a  // Highest keyid I care to debounce: CapsLock
 
-static bool is_alpha_keydown(unsigned char x) {
-	return (((x >= 0x10) && (x <= 0x19)) || // top row
-			((x >= 0x1e) && (x <= 0x26)) || // middle row
-			((x >= 0x2c) && (x <= 0x32)));  // bottom row
+static bool is_letter(unsigned char k) {
+	return (((k >= 0x10) && (k <= 0x19)) || // Q - P (top row)
+		((k >= 0x1e) && (k <= 0x26)) || // A - L (middle row)
+		((k >= 0x2c) && (k <= 0x32)));  // Z - M (bottom row)
 }
 
 static bool i8042_debounce_filter(
@@ -106,7 +106,7 @@ static bool i8042_debounce_filter(
 			key->block_next_keyup = true;
 			return true;
 
-		} else if (likely(is_alpha_keydown(data) && (jiffies_last_keydown > 0))) {
+		} else if (likely(is_letter(keyid) && (jiffies_last_keydown > 0))) {
 			msecs_since_keydown = jiffies_to_msecs(jiffies - jiffies_last_keydown);
 			if (unlikely(msecs_since_keydown < INTERKEY_MSEC)) {
 				// another key was pressed *very* recently
