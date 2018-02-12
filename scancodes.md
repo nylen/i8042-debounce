@@ -133,15 +133,15 @@ e0 6c	Mail
 ## Wakeup/ACK
 
 Upon waking from sleep, I've observed the following sequence of bytes flow through the filter.
-I believe it's a sequence of Ack (0xfa) and Keyboard ID (0xab 0x41) transactions.
+I believe it's a sequence of Ack (0xfa) and Keyboard ID (0xab 0x41) responses.
 
 ```
 fa ab 41 fa fa fa fa fa fa fa fa fa fa
 ```
 
-I need to prevent my filter logic from tripping over these bytes, as they don't come in pairs like
-real keydown/keyup events, nor are they relevent for debouncing. Since I also don't want to mess
-with extended codes (e.g. media buttons), I'll put a few guards at the top of the filter:
+I need to prevent the filter from tripping over these bytes, as they don't come in pairs like real
+keydown/keyup events, nor are they relevant for debouncing. Since I also don't want to mess with
+extended codes (e.g. media buttons), I'll put a few guards at the top of the filter:
 
   * `data == e0` → next byte carries data for an extended code
   * `prev-data == e0` → this byte carries data for an extended code
@@ -152,8 +152,8 @@ To understand the third guard, note that any attempt to debounce \ would be unab
 keyup (`ab`) from the beginning of a keyboard ID sequence (`ab 41`). Since \ is an unlikely source
 of bounce, I'm simply ignoring it.
 
-The last guard (range check) let's me omit an explicit guard for Acks (`fa`) or the second byte in a
-keyboard ID sequence (`41`), as they fall outside the specified range.
+The last guard (range check) lets me omit an explicit guard for Acks (`fa`) or the second byte in a
+keyboard ID sequence (`41`), as both fall outside the specified range.
 
 # References
 
