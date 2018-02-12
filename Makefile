@@ -35,5 +35,5 @@ install:
 uninstall:
 	rm $(KMISC)/$(modname)/$(modname).ko
 	rmdir $(KMISC)/$(modname)
-	rmdir $(KMISC)
+	rmdir $(KMISC) --ignore-fail-on-non-empty
 	depmod -a
