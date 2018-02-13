@@ -1,10 +1,10 @@
 ## i8042 keyboard debounce
 
-Forked from [nylen/i8042-debounce](https://github.com/nylen/i8042-debounce).
+This kernel module provides a software fix for a Dell XPS keyboard.  They
+generate duplicate key presse sometimes, which is pretty annoying.
 
-This kernel module provides a software fix for the keyboard on my Dell
-XPS 13 (9360) because it generates duplicate key presses sometimes, which is
-pretty annoying.
+Tested on both a Dell XPS 15 (9550) and XPS 13 (9360).  Both keyboards have
+similar issues.
 
 This module uses the filter feature of the `i8042` serio driver.  Much like
 Highlander, there can be only one of these filters at a time.  There are a few
@@ -21,13 +21,13 @@ Fortunately none of these are loaded on my machine.
 
 ## Credits
 
-Forked from [nylen/i8042-debounce](https://github.com/nylen/i8042-debounce).
-
 Basic structure and `Makefile` adapted from
 [`bbswitch`](https://github.com/Bumblebee-Project/bbswitch).
 
 `i8042` filter code and extended key handling adapted from the aforementioned
 `drivers/platform/x86/dell-laptop.c`.
+
+Everything else: copyright (c) 2017-2018 James Nylen, Ivan Brennan.
 
 ## License
 

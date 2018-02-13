@@ -6,8 +6,8 @@
 #define KBD_DEBOUNCE_VERSION "0.1"
 
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Debounce the i8042 keyboard");
-MODULE_AUTHOR("James Nylen <jnylen@gmail.com>");
+MODULE_DESCRIPTION("Debounce the i8042 (Dell XPS) keyboard");
+MODULE_AUTHOR("James Nylen <jnylen@gmail.com>, Ivan Brennan <ivan.brennan@gmail.com>");
 MODULE_VERSION(KBD_DEBOUNCE_VERSION);
 
 #ifndef STANDARD_MSEC
