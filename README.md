@@ -1,7 +1,7 @@
 ## i8042 keyboard debounce
 
 This kernel module provides a software fix for a Dell XPS keyboard.  They
-generate duplicate key presse sometimes, which is pretty annoying.
+generate duplicate key presses sometimes, which is pretty annoying.
 
 Tested on both a Dell XPS 15 (9550) and XPS 13 (9360).  Both keyboards have
 similar issues.
