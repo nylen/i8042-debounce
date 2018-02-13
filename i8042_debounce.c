@@ -10,16 +10,22 @@ MODULE_DESCRIPTION("Debounce the i8042 (Dell XPS) keyboard");
 MODULE_AUTHOR("James Nylen <jnylen@gmail.com>, Ivan Brennan <ivan.brennan@gmail.com>");
 MODULE_VERSION(KBD_DEBOUNCE_VERSION);
 
-#ifndef STANDARD_MSEC
-#define STANDARD_MSEC 40
+#ifdef STANDARD_MSEC
+static const unsigned int standard_msec = STANDARD_MSEC;
+#else
+static const unsigned int standard_msec = 40;
 #endif
 
-#ifndef MULTIKEY_MSEC
-#define MULTIKEY_MSEC 55
+#ifdef MULTIKEY_MSEC
+static const unsigned int multikey_msec = MULTIKEY_MSEC;
+#else
+static const unsigned int multikey_msec = 55;
 #endif
 
 #ifndef INTERKEY_MSEC
-#define INTERKEY_MSEC 5
+static const unsigned int interkey_msec = INTERKEY_MSEC;
+#else
+static const unsigned int interkey_msec = 5;
 #endif
 
 struct i8042_key_debounce_data {
@@ -28,25 +34,25 @@ struct i8042_key_debounce_data {
 	unsigned long jiffies_last_keyup;
 };
 
-#define NUM_KEYS 0x80
-#define SIZEOF_KEYS (sizeof(struct i8042_key_debounce_data) * NUM_KEYS)
 static struct i8042_key_debounce_data *keys;
 
-#define KEYUP_MASK 0x80 // High bit: 1 (keyup), 0 (keydown)
-#define KEYID_MASK 0x7f // Remaining 7 bits: which key
-#define EXTENDED 0xe0   // E.g. 0xe0 0x1c (Keypad Enter)
-#define MAX_KEYID 0x3a  // Highest keyid I care to debounce: CapsLock
+static const unsigned int sizeof_keys = (sizeof(struct i8042_key_debounce_data) * 128);
 
-static bool is_letter(unsigned char k) {
-	return (((k >= 0x10) && (k <= 0x19)) || // Q - P (top row)
-		((k >= 0x1e) && (k <= 0x26)) || // A - L (middle row)
-		((k >= 0x2c) && (k <= 0x32)));  // Z - M (bottom row)
+static const unsigned char keyup_mask = 0x80;	// High bit: 1 (keyup), 0 (keydown)
+static const unsigned char keyid_mask = 0x7f;	// Remaining 7 bits: which key
+static const unsigned char extension  = 0xe0;	// E.g. 0xe0 0x1c (Keypad Enter)
+static const unsigned char max_keyid  = 0x3a;	// Highest keyid I care to debounce: CapsLock
+
+static bool is_letter(const unsigned char k) {
+	return (((k >= 0x10) && (k <= 0x19)) ||	// Q - P (top row)
+		((k >= 0x1e) && (k <= 0x26)) ||	// A - L (middle row)
+		((k >= 0x2c) && (k <= 0x32)));	// Z - M (bottom row)
 }
 
 static bool i8042_debounce_filter(
-	unsigned char data, // scancode
-	unsigned char str,  // status register
-	struct serio *serio // port
+	unsigned char data,	// scancode
+	unsigned char str,	// status register
+	struct serio *serio	// port
 ) {
 	static bool extended;
 	static unsigned char keys_currently_down;
@@ -60,7 +66,7 @@ static bool i8042_debounce_filter(
 		return false;
 	}
 
-	if (unlikely(data == EXTENDED)) { // Extended keys
+	if (unlikely(data == extension)) { // Extended keys
 		extended = true;
 		return false;
 	} else if (unlikely(extended)) {
@@ -68,18 +74,18 @@ static bool i8042_debounce_filter(
 		return false;
 	}
 
-	keyid = data & KEYID_MASK;
+	keyid = data & keyid_mask;
 
 	if (unlikely(keyid == 0x2b)) { // Either \ or part of an Ack/ID sequence
 		return false;
 	}
-	if (unlikely(keyid > MAX_KEYID)) {
+	if (unlikely(keyid > max_keyid)) {
 		return false;
 	}
 
 	key = keys + keyid;
 
-	if (data & KEYUP_MASK) {
+	if (data & keyup_mask) {
 		// keyup
 		key->is_down = false;
 		if (likely(keys_currently_down)) {
@@ -133,14 +139,14 @@ static int __init i8042_debounce_init(void) {
 		goto err_filter;
 	}
 
-	keys = vmalloc(SIZEOF_KEYS);
+	keys = vmalloc(sizeof_keys);
 	if (!keys) {
 		pr_err("Unable to allocate memory\n");
 		err = -ENOMEM;
 		goto err_mem;
 	}
 
-	memset(keys, 0x00, SIZEOF_KEYS);
+	memset(keys, 0x00, sizeof_keys);
 
 	pr_info("i8042_debounce init\n");
 	return 0;
